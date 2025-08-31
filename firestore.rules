@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow users to read/write their own profile data
+    match /profiles/{profileId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.uid;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+    }
+    
+    // Allow public read access to public projects, but only creators can edit
+    match /projects/{projectId} {
+      allow read: if resource.data.isPublic == true || request.auth.uid == resource.data.creatorId;
+      allow write: if request.auth != null && request.auth.uid == resource.data.creatorId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.creatorId;
+    }
+    
+    // Allow users to manage their own opportunities
+    match /opportunities/{opportunityId} {
+      allow read: if true; // Anyone can read opportunities
+      allow write: if request.auth != null && request.auth.uid == resource.data.posterId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.posterId;
+    }
+    
+    // Allow users to manage their own resources
+    match /resources/{resourceId} {
+      allow read: if true; // Anyone can read resources
+      allow write: if request.auth != null && request.auth.uid == resource.data.ownerId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.ownerId;
+    }
+    
+    // Allow users to manage their own connections
+    match /connections/{connectionId} {
+      allow read, write: if request.auth != null && 
+        (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
+      allow create: if request.auth != null && 
+        (request.auth.uid == request.resource.data.senderId || request.auth.uid == request.resource.data.receiverId);
+    }
+    
+    // Allow users to manage their own favorites
+    match /favorites/{favoriteId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Allow users to manage their own applications
+    match /applications/{applicationId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+  }
+}
