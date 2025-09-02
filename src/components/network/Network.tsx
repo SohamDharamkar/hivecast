@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Filter, UserPlus, MessageCircle, Star, MapPin, Briefcase } from 'lucide-react';
+import { Search, Filter, UserPlus, MessageCircle, Star, MapPin, Briefcase, Eye } from 'lucide-react';
 
 export default function Network() {
   const [searchTerm, setSearchTerm] = useState('');
