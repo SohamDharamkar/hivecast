@@ -20,6 +20,7 @@ import FindCrew from './components/crew/FindCrew';
 import Accommodation from './components/accommodation/Accommodation';
 import Productions from './components/productions/Productions';
 import Settings from './components/settings/Settings';
+import Events from './components/events/Events';
 import { 
   Home, 
   Search, 
@@ -34,6 +35,7 @@ import {
   UserPlus, 
   Bed, 
   Clapperboard,
+  Calendar,
   Settings as SettingsIcon,
   LogOut,
   Menu,
@@ -61,6 +63,7 @@ function AppContent() {
     { id: 'explore', label: 'Explore', icon: Search },
     { id: 'profile', label: 'My Profile', icon: User },
     { id: 'projects', label: 'Projects', icon: FolderPlus },
+    { id: 'events', label: 'Events', icon: Calendar },
     { id: 'network', label: 'Network', icon: Users },
     { id: 'jobs', label: 'Jobs', icon: Briefcase },
     { id: 'collaborate', label: 'Collaborate', icon: GitBranch },
@@ -82,6 +85,8 @@ function AppContent() {
         return <Profile />;
       case 'projects':
         return <Projects />;
+      case 'events':
+        return <Events />;
       case 'network':
         return <Network />;
       case 'jobs':

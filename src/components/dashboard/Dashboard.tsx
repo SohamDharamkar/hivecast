@@ -1,10 +1,21 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useApp } from '../../contexts/AppContext';
-import { BarChart3, TrendingUp, Users, FolderOpen, Calendar, DollarSign } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, FolderOpen, Calendar, DollarSign, Clock } from 'lucide-react';
 
 export default function Dashboard() {
-  const { projects } = useApp();
+  const { projects, events } = useApp();
+
+  // Get upcoming events (next 7 days)
+  const upcomingEvents = events
+    .filter(event => {
+      const eventDate = new Date(event.dateTime);
+      const now = new Date();
+      const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      return eventDate >= now && eventDate <= weekFromNow;
+    })
+    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
+    .slice(0, 3);
 
   const stats = [
     {
@@ -23,8 +34,8 @@ export default function Dashboard() {
     },
     {
       title: 'Upcoming Events',
-      value: 5,
-      change: 'Next: Tomorrow 2PM',
+      value: upcomingEvents.length,
+      change: upcomingEvents.length > 0 ? `Next: ${new Date(upcomingEvents[0].dateTime).toLocaleDateString()}` : 'No upcoming events',
       icon: Calendar,
       color: 'purple',
     },
@@ -130,6 +141,7 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
+        {/* Upcoming Events */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -137,33 +149,45 @@ export default function Dashboard() {
           className="glass rounded-2xl p-6 card-3d"
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-white">Recent Activity</h2>
-            <TrendingUp className="h-5 w-5 text-gray-400" />
+            <h2 className="text-lg font-semibold text-white">Upcoming Events</h2>
+            <Calendar className="h-5 w-5 text-gray-400" />
           </div>
           <div className="space-y-4">
-            {[
-              { text: 'New collaboration request from Sarah Chen', time: '2 hours ago', color: 'blue' },
-              { text: 'Project "Midnight Dreams" completed', time: '1 day ago', color: 'green' },
-              { text: 'Equipment rental booking confirmed', time: '3 days ago', color: 'purple' },
-            ].map((activity, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6 + index * 0.1 }}
-                className="flex items-start space-x-3 p-3 bg-gray-800 rounded-xl border border-gray-700"
-              >
+            {upcomingEvents.length > 0 ? (
+              upcomingEvents.map((event, index) => (
                 <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: index * 0.5 }}
-                  className={`w-3 h-3 bg-gradient-to-r ${getColorClasses(activity.color)} rounded-full mt-1`}
-                />
-                <div>
-                  <p className="text-sm text-white">{activity.text}</p>
-                  <p className="text-xs text-gray-500">{activity.time}</p>
-                </div>
-              </motion.div>
-            ))}
+                  key={event.id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6 + index * 0.1 }}
+                  className="flex items-start space-x-3 p-3 bg-gray-800 rounded-xl border border-gray-700"
+                >
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: index * 0.5 }}
+                    className="w-3 h-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mt-1"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm text-white font-medium">{event.title}</p>
+                    <div className="flex items-center space-x-4 text-xs text-gray-400 mt-1">
+                      <div className="flex items-center space-x-1">
+                        <Clock size={10} />
+                        <span>{new Date(event.dateTime).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <MapPin size={10} />
+                        <span>{event.location}</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
+              <div className="text-center py-4">
+                <Calendar size={32} className="mx-auto text-gray-600 mb-2" />
+                <p className="text-sm text-gray-400">No upcoming events</p>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>
@@ -238,6 +262,16 @@ export default function Dashboard() {
                   </td>
                 </motion.tr>
               ))}
+              {projects.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-8 text-center">
+                    <div className="text-gray-400">
+                      <FolderOpen size={32} className="mx-auto mb-2" />
+                      <p className="text-sm">No projects yet. Create your first project to get started!</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

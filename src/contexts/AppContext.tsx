@@ -15,6 +15,19 @@ interface Project {
   image?: string;
 }
 
+interface Event {
+  id: string;
+  title: string;
+  description: string;
+  dateTime: string;
+  location: string;
+  type: string;
+  attendees: number;
+  isPublic: boolean;
+  createdAt: string;
+  creatorId: string;
+}
+
 interface Settings {
   theme: 'dark' | 'light';
   notifications: boolean;
@@ -29,6 +42,10 @@ interface AppContextType {
   addProject: (project: Omit<Project, 'id' | 'createdAt' | 'status' | 'progress' | 'collaborators'>) => void;
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
+  events: Event[];
+  addEvent: (event: Omit<Event, 'id' | 'createdAt'>) => void;
+  updateEvent: (id: string, updates: Partial<Event>) => void;
+  deleteEvent: (id: string) => void;
   settings: Settings;
   updateSettings: (updates: Partial<Settings>) => void;
 }
@@ -50,6 +67,11 @@ interface AppProviderProps {
 export function AppProvider({ children }: AppProviderProps) {
   const [projects, setProjects] = useState<Project[]>(() => {
     const saved = localStorage.getItem('hivecast_projects');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [events, setEvents] = useState<Event[]>(() => {
+    const saved = localStorage.getItem('hivecast_events');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -94,6 +116,32 @@ export function AppProvider({ children }: AppProviderProps) {
     localStorage.setItem('hivecast_projects', JSON.stringify(updatedProjects));
   };
 
+  const addEvent = (eventData: Omit<Event, 'id' | 'createdAt'>) => {
+    const newEvent: Event = {
+      ...eventData,
+      id: 'event-' + Date.now(),
+      createdAt: new Date().toISOString(),
+    };
+    
+    const updatedEvents = [...events, newEvent];
+    setEvents(updatedEvents);
+    localStorage.setItem('hivecast_events', JSON.stringify(updatedEvents));
+  };
+
+  const updateEvent = (id: string, updates: Partial<Event>) => {
+    const updatedEvents = events.map(event =>
+      event.id === id ? { ...event, ...updates } : event
+    );
+    setEvents(updatedEvents);
+    localStorage.setItem('hivecast_events', JSON.stringify(updatedEvents));
+  };
+
+  const deleteEvent = (id: string) => {
+    const updatedEvents = events.filter(event => event.id !== id);
+    setEvents(updatedEvents);
+    localStorage.setItem('hivecast_events', JSON.stringify(updatedEvents));
+  };
+
   const updateSettings = (updates: Partial<Settings>) => {
     const updatedSettings = { ...settings, ...updates };
     setSettings(updatedSettings);
@@ -105,6 +153,10 @@ export function AppProvider({ children }: AppProviderProps) {
     addProject,
     updateProject,
     deleteProject,
+    events,
+    addEvent,
+    updateEvent,
+    deleteEvent,
     settings,
     updateSettings,
   };
