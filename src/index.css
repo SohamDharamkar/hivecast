@@ -18,6 +18,48 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: #0a0a0a;
   color: #ffffff;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Light theme styles */
+.light body {
+  background-color: #f8fafc;
+  color: #1a202c;
+}
+
+.light .glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.light .bg-gray-900 {
+  background-color: #f8fafc !important;
+}
+
+.light .bg-gray-800 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.light .text-white {
+  color: #1a202c !important;
+}
+
+.light .text-gray-400 {
+  color: #64748b !important;
+}
+
+.light .text-gray-300 {
+  color: #475569 !important;
+}
+
+.light .border-gray-700 {
+  border-color: #e2e8f0 !important;
+}
+
+.light .border-gray-600 {
+  border-color: #cbd5e1 !important;
 }
 
 code {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useApp } from '../../contexts/AppContext';
 import { 
@@ -12,11 +12,19 @@ import {
   Palette,
   Shield,
   Download,
-  Trash2
+  Trash2,
+  Check,
+  X
 } from 'lucide-react';
 
 export default function Settings() {
-  const { settings, updateSettings } = useApp();
+  const { settings, updateSettings, exportData, deleteAllData } = useApp();
+
+  // Apply theme on component mount
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', settings.theme === 'dark');
+    document.documentElement.classList.toggle('light', settings.theme === 'light');
+  }, [settings.theme]);
 
   const settingSections = [
     {
@@ -99,6 +107,30 @@ export default function Settings() {
 
   const handleSettingChange = (settingId: string, value: any) => {
     updateSettings({ [settingId]: value });
+    
+    // Show feedback for setting changes
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+    notification.textContent = 'Setting updated successfully!';
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      document.body.removeChild(notification);
+    }, 2000);
+  };
+
+  const handleExportData = () => {
+    exportData();
+    
+    // Show success message
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+    notification.textContent = 'Data exported successfully!';
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      document.body.removeChild(notification);
+    }, 2000);
   };
 
   return (
@@ -139,7 +171,7 @@ export default function Settings() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: (sectionIndex * 0.1) + (settingIndex * 0.05) }}
-                    className="flex items-center justify-between p-4 bg-gray-800 rounded-xl border border-gray-700"
+                    className="flex items-center justify-between p-4 bg-gray-800 rounded-xl border border-gray-700 hover:border-gray-600 transition-colors"
                   >
                     <div className="flex-1">
                       <h3 className="text-sm font-medium text-white">{setting.label}</h3>
@@ -165,7 +197,7 @@ export default function Settings() {
                         <select
                           value={setting.value}
                           onChange={(e) => handleSettingChange(setting.id, e.target.value)}
-                          className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                         >
                           {setting.options?.map(option => (
                             <option key={option.value} value={option.value}>
@@ -200,30 +232,86 @@ export default function Settings() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full flex items-center justify-between p-4 bg-gray-800 rounded-xl border border-gray-700 hover:border-blue-500 transition-colors"
+              onClick={handleExportData}
+              className="w-full flex items-center justify-between p-4 bg-gray-800 rounded-xl border border-gray-700 hover:border-blue-500 transition-colors group"
             >
               <div className="flex items-center">
                 <Download size={16} className="mr-3 text-blue-400" />
                 <div className="text-left">
                   <h3 className="text-sm font-medium text-white">Export Data</h3>
-                  <p className="text-xs text-gray-400">Download all your data</p>
+                  <p className="text-xs text-gray-400">Download all your data as JSON</p>
                 </div>
+              </div>
+              <div className="text-blue-400 group-hover:text-blue-300">
+                <Download size={16} />
               </div>
             </motion.button>
 
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
+              onClick={deleteAllData}
               className="w-full flex items-center justify-between p-4 bg-gray-800 rounded-xl border border-red-600 hover:bg-red-600 transition-colors group"
             >
               <div className="flex items-center">
                 <Trash2 size={16} className="mr-3 text-red-400 group-hover:text-white" />
                 <div className="text-left">
                   <h3 className="text-sm font-medium text-white">Delete Account</h3>
-                  <p className="text-xs text-gray-400 group-hover:text-red-100">Permanently delete your account</p>
+                  <p className="text-xs text-gray-400 group-hover:text-red-100">Permanently delete all your data</p>
                 </div>
               </div>
+              <div className="text-red-400 group-hover:text-white">
+                <Trash2 size={16} />
+              </div>
             </motion.button>
+          </div>
+        </motion.div>
+
+        {/* Current Settings Summary */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="glass rounded-2xl p-6 card-3d"
+        >
+          <h2 className="text-xl font-semibold text-white mb-4">Current Settings</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-400">Theme:</span>
+                <span className="text-white capitalize">{settings.theme}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-400">Language:</span>
+                <span className="text-white">{settingSections[3].settings[0].options?.find(o => o.value === settings.language)?.label}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-400">Public Profile:</span>
+                <span className={`text-sm ${settings.publicProfile ? 'text-green-400' : 'text-red-400'}`}>
+                  {settings.publicProfile ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-400">Notifications:</span>
+                <span className={`text-sm ${settings.notifications ? 'text-green-400' : 'text-red-400'}`}>
+                  {settings.notifications ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-400">Email Updates:</span>
+                <span className={`text-sm ${settings.emailUpdates ? 'text-green-400' : 'text-red-400'}`}>
+                  {settings.emailUpdates ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-400">Show Location:</span>
+                <span className={`text-sm ${settings.showLocation ? 'text-green-400' : 'text-red-400'}`}>
+                  {settings.showLocation ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+            </div>
           </div>
         </motion.div>
       </div>

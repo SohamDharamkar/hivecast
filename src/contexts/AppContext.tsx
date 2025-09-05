@@ -48,6 +48,8 @@ interface AppContextType {
   deleteEvent: (id: string) => void;
   settings: Settings;
   updateSettings: (updates: Partial<Settings>) => void;
+  exportData: () => void;
+  deleteAllData: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -146,6 +148,53 @@ export function AppProvider({ children }: AppProviderProps) {
     const updatedSettings = { ...settings, ...updates };
     setSettings(updatedSettings);
     localStorage.setItem('hivecast_settings', JSON.stringify(updatedSettings));
+    
+    // Apply theme changes immediately
+    if (updates.theme) {
+      document.documentElement.classList.toggle('dark', updates.theme === 'dark');
+      document.documentElement.classList.toggle('light', updates.theme === 'light');
+    }
+  };
+
+  const exportData = () => {
+    const data = {
+      projects,
+      events,
+      settings,
+      exportDate: new Date().toISOString(),
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `hivecast-data-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const deleteAllData = () => {
+    if (window.confirm('Are you sure you want to delete all your data? This action cannot be undone.')) {
+      localStorage.removeItem('hivecast_projects');
+      localStorage.removeItem('hivecast_events');
+      localStorage.removeItem('hivecast_settings');
+      localStorage.removeItem('hivecast_user');
+      
+      setProjects([]);
+      setEvents([]);
+      setSettings({
+        theme: 'dark',
+        notifications: true,
+        emailUpdates: false,
+        publicProfile: true,
+        showLocation: true,
+        language: 'en',
+      });
+      
+      window.location.reload();
+    }
   };
 
   const value = {
@@ -159,6 +208,8 @@ export function AppProvider({ children }: AppProviderProps) {
     deleteEvent,
     settings,
     updateSettings,
+    exportData,
+    deleteAllData,
   };
 
   return (
