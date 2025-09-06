@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { getProjects, Project as FirebaseProject } from '../services/firebase';
+import { useAuth } from './AuthContext';
 
-interface Project {
+export interface Project {
   id: string;
   title: string;
   description: string;
@@ -12,7 +14,10 @@ interface Project {
   collaborators: number;
   createdAt: string;
   creatorId: string;
+  creatorName: string;
   image?: string;
+  tags?: string[];
+  files?: string[];
 }
 
 interface Event {
@@ -39,6 +44,7 @@ interface Settings {
 
 interface AppContextType {
   projects: Project[];
+  refreshProjects: () => Promise<void>;
   addProject: (project: Omit<Project, 'id' | 'createdAt' | 'status' | 'progress' | 'collaborators'>) => void;
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
@@ -67,6 +73,7 @@ interface AppProviderProps {
 }
 
 export function AppProvider({ children }: AppProviderProps) {
+  const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>(() => {
     const saved = localStorage.getItem('hivecast_projects');
     return saved ? JSON.parse(saved) : [];
@@ -89,6 +96,24 @@ export function AppProvider({ children }: AppProviderProps) {
     };
   });
 
+  // Load projects from Firebase when user changes
+  useEffect(() => {
+    if (user) {
+      refreshProjects();
+    }
+  }, [user]);
+
+  const refreshProjects = async () => {
+    if (!user) return;
+    
+    try {
+      const userProjects = await getProjects(user.uid);
+      setProjects(userProjects);
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    }
+  };
+
   const addProject = (projectData: Omit<Project, 'id' | 'createdAt' | 'status' | 'progress' | 'collaborators'>) => {
     const newProject: Project = {
       ...projectData,
@@ -97,6 +122,7 @@ export function AppProvider({ children }: AppProviderProps) {
       status: 'Pre-Production',
       progress: 0,
       collaborators: 1,
+      creatorName: projectData.creatorId === user?.uid ? (user?.displayName || user?.email || 'Unknown') : 'Unknown',
     };
     
     const updatedProjects = [...projects, newProject];
@@ -199,6 +225,7 @@ export function AppProvider({ children }: AppProviderProps) {
 
   const value = {
     projects,
+    refreshProjects,
     addProject,
     updateProject,
     deleteProject,

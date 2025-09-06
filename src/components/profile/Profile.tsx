@@ -1,12 +1,20 @@
 import React, { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDropzone } from 'react-dropzone';
 import { useAuth } from '../../contexts/AuthContext';
+import { uploadFile } from '../../services/firebase';
 import { Camera, Edit3, MapPin, Calendar, Mail, Phone, Globe, Star, Upload, X, Plus } from 'lucide-react';
+import LoadingSpinner from '../common/LoadingSpinner';
+import SuccessMessage from '../common/SuccessMessage';
+import ErrorMessage from '../common/ErrorMessage';
 
 export default function Profile() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateUserProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [profileData, setProfileData] = useState({
     displayName: user?.displayName || '',
     email: user?.email || '',
@@ -25,22 +33,37 @@ export default function Profile() {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif']
     },
     maxFiles: 1,
-    onDrop: (acceptedFiles) => {
+    onDrop: async (acceptedFiles) => {
       if (acceptedFiles.length > 0) {
         const file = acceptedFiles[0];
-        const reader = new FileReader();
-        reader.onload = () => {
-          const photoURL = reader.result as string;
-          updateProfile({ photoURL });
-        };
-        reader.readAsDataURL(file);
+        setUploadingPhoto(true);
+        
+        try {
+          const photoURL = await uploadFile(file, `profiles/${user?.uid}/avatar`);
+          await updateUserProfile({ photoURL });
+          setMessage({ type: 'success', text: 'Profile photo updated successfully!' });
+        } catch (error) {
+          console.error('Error uploading photo:', error);
+          setMessage({ type: 'error', text: 'Failed to upload photo. Please try again.' });
+        } finally {
+          setUploadingPhoto(false);
+        }
       }
     }
   });
 
-  const handleSave = () => {
-    updateProfile(profileData);
-    setIsEditing(false);
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      await updateUserProfile(profileData);
+      setIsEditing(false);
+      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addSkill = () => {
@@ -88,7 +111,31 @@ export default function Profile() {
   ];
 
   return (
+    <>
+      <Helmet>
+        <title>My Profile - HiveCast | {user?.displayName || 'Creative Professional'}</title>
+        <meta name="description" content={`${user?.displayName || 'Creative Professional'} profile on HiveCast. ${user?.bio || 'Passionate creative professional.'}`} />
+      </Helmet>
+      
     <div className="space-y-6">
+      <AnimatePresence>
+        {message && (
+          <div className="fixed top-4 right-4 z-50">
+            {message.type === 'success' ? (
+              <SuccessMessage 
+                message={message.text} 
+                onClose={() => setMessage(null)}
+              />
+            ) : (
+              <ErrorMessage 
+                message={message.text} 
+                onClose={() => setMessage(null)}
+              />
+            )}
+          </div>
+        )}
+      </AnimatePresence>
+      
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -99,10 +146,17 @@ export default function Profile() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-          className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-lg"
+          disabled={loading}
+          className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Edit3 size={16} className="mr-2" />
-          {isEditing ? 'Save Changes' : 'Edit Profile'}
+          {loading ? (
+            <LoadingSpinner size="sm" />
+          ) : (
+            <>
+              <Edit3 size={16} className="mr-2" />
+              {isEditing ? 'Save Changes' : 'Edit Profile'}
+            </>
+          )}
         </motion.button>
       </motion.div>
 
@@ -142,7 +196,11 @@ export default function Profile() {
                     }`}
                   >
                     <input {...getInputProps()} />
-                    <Upload size={24} className="text-white" />
+                    {uploadingPhoto ? (
+                      <LoadingSpinner size="sm" />
+                    ) : (
+                      <Upload size={24} className="text-white" />
+                    )}
                   </motion.div>
                 )}
               </div>
@@ -419,5 +477,6 @@ export default function Profile() {
         </div>
       </div>
     </div>
+    </>
   );
 }

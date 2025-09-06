@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './contexts/AuthContext';
 import { AppProvider } from './contexts/AppContext';
 import { useAuth } from './contexts/AuthContext';
+import LandingPage from './components/landing/LandingPage';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import Dashboard from './components/dashboard/Dashboard';
@@ -21,6 +23,7 @@ import Accommodation from './components/accommodation/Accommodation';
 import Productions from './components/productions/Productions';
 import Settings from './components/settings/Settings';
 import Events from './components/events/Events';
+import LoadingSpinner from './components/common/LoadingSpinner';
 import { 
   Home, 
   Search, 
@@ -43,16 +46,32 @@ import {
 } from 'lucide-react';
 
 function AppContent() {
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
   const [currentView, setCurrentView] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="gradient-animate bg-clip-text text-transparent mb-4">
+            <h1 className="text-4xl font-bold">HiveCast</h1>
+          </div>
+          <LoadingSpinner size="lg" />
+          <p className="text-gray-400 mt-4">Loading your creative workspace...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
       <Router>
         <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/*" element={<Login />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
     );
@@ -109,6 +128,14 @@ function AppContent() {
         return <Settings />;
       default:
         return <Dashboard />;
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
     }
   };
 
@@ -250,7 +277,7 @@ function AppContent() {
               <motion.button 
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={logout}
+                onClick={handleLogout}
                 className="w-full flex items-center px-4 py-3 text-sm font-medium text-gray-300 rounded-xl hover:bg-red-600 hover:text-white transition-all duration-200"
               >
                 <LogOut size={18} className="mr-3" />
@@ -296,11 +323,13 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
-    </AuthProvider>
+    <HelmetProvider>
+      <AuthProvider>
+        <AppProvider>
+          <AppContent />
+        </AppProvider>
+      </AuthProvider>
+    </HelmetProvider>
   );
 }
 

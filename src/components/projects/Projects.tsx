@@ -1,15 +1,22 @@
 import React, { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../../contexts/AppContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { createProject as createProjectService, updateProject as updateProjectService, deleteProject as deleteProjectService } from '../../services/firebase';
 import { Plus, Search, Filter, Calendar, Users, DollarSign, Eye, Edit3, Trash2, X } from 'lucide-react';
+import LoadingSpinner from '../common/LoadingSpinner';
+import SuccessMessage from '../common/SuccessMessage';
+import ErrorMessage from '../common/ErrorMessage';
 
 export default function Projects() {
-  const { projects, addProject, updateProject, deleteProject } = useApp();
+  const { projects, addProject, updateProject, deleteProject, refreshProjects } = useApp();
   const { user } = useAuth();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const [newProject, setNewProject] = useState({
     title: '',
@@ -20,18 +27,52 @@ export default function Projects() {
     creatorId: user?.uid || '',
   });
 
-  const handleCreateProject = (e: React.FormEvent) => {
+  const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    addProject(newProject);
-    setShowCreateForm(false);
-    setNewProject({
-      title: '',
-      description: '',
-      category: 'film',
-      budget: '',
-      isPublic: true,
-      creatorId: user?.uid || '',
-    });
+    setLoading(true);
+    
+    try {
+      const projectData = {
+        ...newProject,
+        creatorName: user?.displayName || user?.email || 'Unknown',
+        status: 'Pre-Production',
+        progress: 0,
+        collaborators: 1,
+      };
+      
+      await createProjectService(projectData);
+      await refreshProjects();
+      
+      setShowCreateForm(false);
+      setNewProject({
+        title: '',
+        description: '',
+        category: 'film',
+        budget: '',
+        isPublic: true,
+        creatorId: user?.uid || '',
+      });
+      
+      setMessage({ type: 'success', text: 'Project created successfully!' });
+    } catch (error) {
+      console.error('Error creating project:', error);
+      setMessage({ type: 'error', text: 'Failed to create project. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    if (window.confirm('Are you sure you want to delete this project?')) {
+      try {
+        await deleteProjectService(projectId);
+        await refreshProjects();
+        setMessage({ type: 'success', text: 'Project deleted successfully!' });
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        setMessage({ type: 'error', text: 'Failed to delete project. Please try again.' });
+      }
+    }
   };
 
   const filteredProjects = projects.filter(project => {
@@ -42,7 +83,31 @@ export default function Projects() {
   });
 
   return (
+    <>
+      <Helmet>
+        <title>My Projects - HiveCast | Manage Your Creative Projects</title>
+        <meta name="description" content="Manage your creative projects on HiveCast. Create, edit, and collaborate on films, music videos, documentaries, and more." />
+      </Helmet>
+      
     <div className="space-y-6">
+      <AnimatePresence>
+        {message && (
+          <div className="fixed top-4 right-4 z-50">
+            {message.type === 'success' ? (
+              <SuccessMessage 
+                message={message.text} 
+                onClose={() => setMessage(null)}
+              />
+            ) : (
+              <ErrorMessage 
+                message={message.text} 
+                onClose={() => setMessage(null)}
+              />
+            )}
+          </div>
+        )}
+      </AnimatePresence>
+      
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -120,7 +185,7 @@ export default function Projects() {
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      onClick={() => deleteProject(project.id)}
+                      onClick={() => handleDeleteProject(project.id)}
                       className="p-2 text-gray-400 hover:text-red-400 transition-colors"
                     >
                       <Trash2 size={16} />
@@ -313,9 +378,10 @@ export default function Projects() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     type="submit"
+                    disabled={loading}
                     className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-lg"
                   >
-                    Create Project
+                    {loading ? <LoadingSpinner size="sm" /> : 'Create Project'}
                   </motion.button>
                 </div>
               </form>
@@ -324,5 +390,6 @@ export default function Projects() {
         )}
       </AnimatePresence>
     </div>
+    </>
   );
 }
