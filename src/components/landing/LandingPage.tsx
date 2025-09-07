@@ -61,19 +61,16 @@ export default function LandingPage() {
     {
       name: 'Sarah Chen',
       role: 'Cinematographer',
-      image: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150',
       quote: 'HiveCast connected me with amazing projects and helped me grow my network in the film industry.'
     },
     {
       name: 'Marcus Johnson',
       role: 'Director',
-      image: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150',
       quote: 'The platform made it easy to find funding for my documentary. The community is incredibly supportive.'
     },
     {
       name: 'Emma Rodriguez',
       role: 'Producer',
-      image: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=150',
       quote: 'From finding crew to renting equipment, HiveCast is my go-to platform for all production needs.'
     }
   ];
@@ -254,11 +251,11 @@ export default function LandingPage() {
                 className="glass rounded-2xl p-8 card-3d"
               >
                 <div className="flex items-center mb-6">
-                  <img
-                    src={testimonial.image}
-                    alt={testimonial.name}
-                    className="w-12 h-12 rounded-full object-cover mr-4"
-                  />
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-4">
+                    <span className="text-white font-semibold text-sm">
+                      {testimonial.name.split(' ').map(n => n[0]).join('')}
+                    </span>
+                  </div>
                   <div>
                     <h4 className="font-semibold">{testimonial.name}</h4>
                     <p className="text-gray-400 text-sm">{testimonial.role}</p>

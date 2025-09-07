@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useDropzone } from 'react-dropzone';
 import { useAuth } from '../../contexts/AuthContext';
 import { uploadFile } from '../../services/firebase';
 import { Camera, Edit3, MapPin, Calendar, Mail, Phone, Globe, Star, Upload, X, Plus } from 'lucide-react';
@@ -28,29 +27,22 @@ export default function Profile() {
   });
   const [newSkill, setNewSkill] = useState('');
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif']
-    },
-    maxFiles: 1,
-    onDrop: async (acceptedFiles) => {
-      if (acceptedFiles.length > 0) {
-        const file = acceptedFiles[0];
-        setUploadingPhoto(true);
-        
-        try {
-          const photoURL = await uploadFile(file, `profiles/${user?.uid}/avatar`);
-          await updateUserProfile({ photoURL });
-          setMessage({ type: 'success', text: 'Profile photo updated successfully!' });
-        } catch (error) {
-          console.error('Error uploading photo:', error);
-          setMessage({ type: 'error', text: 'Failed to upload photo. Please try again.' });
-        } finally {
-          setUploadingPhoto(false);
-        }
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadingPhoto(true);
+      try {
+        const photoURL = await uploadFile(file, `profiles/${user?.uid}/avatar`);
+        await updateUserProfile({ photoURL });
+        setMessage({ type: 'success', text: 'Profile photo updated successfully!' });
+      } catch (error) {
+        console.error('Error uploading photo:', error);
+        setMessage({ type: 'error', text: 'Failed to upload photo. Please try again.' });
+      } finally {
+        setUploadingPhoto(false);
       }
     }
-  });
+  };
 
   const handleSave = async () => {
     setLoading(true);
@@ -190,12 +182,14 @@ export default function Profile() {
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    {...getRootProps()}
-                    className={`absolute inset-0 rounded-full border-2 border-dashed border-blue-400 bg-black bg-opacity-50 flex items-center justify-center cursor-pointer transition-colors ${
-                      isDragActive ? 'border-blue-600 bg-blue-600 bg-opacity-20' : ''
-                    }`}
+                    className="absolute inset-0 rounded-full border-2 border-dashed border-blue-400 bg-black bg-opacity-50 flex items-center justify-center cursor-pointer transition-colors"
                   >
-                    <input {...getInputProps()} />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
                     {uploadingPhoto ? (
                       <LoadingSpinner size="sm" />
                     ) : (
